@@ -120,9 +120,18 @@ module Isuda
         keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
       end
 
-      def htmlify(content, pattern)
+      def latest_entry_id
+        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).to_i
+      end
+
+      def htmlify(entry_id)
+        last_checked_entry_id, htmlfied = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).to_a
+        return htmlfied if latest_entry_id == last_checked_entry_id
+
+        keywords = db.xquery(%|select keyword from entry  order by keyword_length desc where id between ? and ? |, last_checked_entry_id, latest_entry_id);
+        pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
         kw2hash = {}
-        hashed_content = content.gsub(/(#{pattern})/) {|m|
+        hashed_content = htmlfied.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
           "isuda_#{Digest::SHA1.hexdigest(matched_keyword)}".tap do |hash|
             kw2hash[matched_keyword] = hash
@@ -134,7 +143,11 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        escaped_content.gsub(/\n/, "<br />\n")
+        result = escaped_content.gsub(/\n/, "<br />\n")
+
+        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ?|, result, latest_entry_id)
+
+        result
       end
 
       def uri_escape(str)
@@ -166,14 +179,14 @@ module Isuda
       page = (params[:page] || 1).to_i
 
       entries = db.xquery(%|
-        SELECT description, keyword FROM entry
+        SELECT keyword FROM entry
         ORDER BY updated_at DESC
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
       pattern = fetch_all_keyword_pattern
       entries.each do |entry|
-        entry[:html] = htmlify(entry[:description], pattern)
+        entry[:html] = htmlify(entry_id)
         entry[:stars] = load_stars(entry[:keyword])
       end
 
