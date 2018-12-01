@@ -7,6 +7,8 @@ gem 'mysql2'
 gem 'mysql2-cs-bind'
 gem 'sinatra'
 gem 'unicorn'
+gem 'rack-lineprof'
+
 
 group :development do
   gem 'foreman'
@@ -26,4 +28,3 @@ gem 'memory_profiler'
 # For call-stack profiling flamegraphs
 gem 'flamegraph'
 gem 'stackprof'
-
