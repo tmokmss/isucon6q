@@ -126,8 +126,8 @@ module Isuda
 
       def htmlify(entry_id)
         res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
-	last_checked_entry_id = res[:last_checked_entry_id]
-	htmlfied = res[:htmlified]
+        last_checked_entry_id = res[:last_checked_entry_id]
+        htmlfied = res[:htmlified]
         return htmlfied if latest_entry_id == last_checked_entry_id
 
         if htmlfied.nil?
