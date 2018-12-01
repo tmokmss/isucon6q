@@ -134,8 +134,9 @@ module Isuda
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
         #end
 
-        keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
-        pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+        #keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
+        #pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+	pattern = fetch_all_keyword_pattern
         kw2hash = {}
         hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
