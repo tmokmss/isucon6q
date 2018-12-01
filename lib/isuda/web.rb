@@ -10,9 +10,12 @@ require 'rack/utils'
 require 'sinatra/base'
 require 'tilt/erubis'
 require 'redis'
+require 'rack-lineprof'
 
 require 'rack-mini-profiler'
 require 'flamegraph'
+
+use Rack::Lineprof
 
 module Isuda
   class Web < ::Sinatra::Base
