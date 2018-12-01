@@ -186,7 +186,7 @@ module Isuda
       |)
       pattern = fetch_all_keyword_pattern
       entries.each do |entry|
-        entry[:html] = htmlify(entry_id)
+        entry[:html] = htmlify(entry.id)
         entry[:stars] = load_stars(entry[:keyword])
       end
 
