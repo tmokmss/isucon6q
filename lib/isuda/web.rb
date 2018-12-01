@@ -150,7 +150,7 @@ module Isuda
           escaped_content.gsub!(hash, anchor)
         end
 
-        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where = ? |, escaped_content, latest_entry_id, entry_id)
+        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
         escaped_content.gsub(/\n/, "<br />\n")
       end
