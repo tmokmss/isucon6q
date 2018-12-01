@@ -121,7 +121,7 @@ module Isuda
       end
 
       def latest_entry_id
-        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).first[:id].to_i
+        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).first[:id]
       end
 
       def htmlify(entry_id)
@@ -175,6 +175,8 @@ module Isuda
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
       db_star.xquery('TRUNCATE star')
+
+      db.xquery(%| update entry set htmlified = null, last_checked_entry_id = 0 |)
 
       content_type :json
       JSON.generate(result: 'ok')
