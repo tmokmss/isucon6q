@@ -149,11 +149,10 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        result = escaped_content.gsub(/\n/, "<br />\n")
 
-        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ?, where = ? |, result, latest_entry_id, entry_id)
+        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where = ? |, escaped_content, latest_entry_id, entry_id)
 
-        result
+        escaped_content.gsub(/\n/, "<br />\n")
       end
 
       def uri_escape(str)
