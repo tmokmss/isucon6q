@@ -130,9 +130,9 @@ module Isuda
         htmlified = res[:htmlified]
         return htmlified if latest_entry_id == last_checked_entry_id
 
-        if htmlified.nil?
+        #if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
-        end
+        #end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
         pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
