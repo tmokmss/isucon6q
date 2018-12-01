@@ -122,9 +122,25 @@ module Isuda
         keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
       end
 
-      def htmlify(content, pattern)
+      def latest_entry_id
+        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).first[:id]
+      end
+
+      def htmlify(entry_id)
+        res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
+        last_checked_entry_id = res[:last_checked_entry_id]
+        htmlified = res[:htmlified]
+        return htmlified if latest_entry_id == last_checked_entry_id
+
+        #if htmlified.nil?
+          htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
+        #end
+
+        #keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
+        #pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+	pattern = fetch_all_keyword_pattern
         kw2hash = {}
-        hashed_content = content.gsub(/(#{pattern})/) {|m|
+        hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
           "isuda_#{Digest::SHA1.hexdigest(matched_keyword)}".tap do |hash|
             kw2hash[matched_keyword] = hash
@@ -136,6 +152,9 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
+
+        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
+
         escaped_content.gsub(/\n/, "<br />\n")
       end
 
@@ -159,6 +178,8 @@ module Isuda
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
       db_star.xquery('TRUNCATE star')
 
+      db.xquery(%| update entry set htmlified = null, last_checked_entry_id = 0 |)
+
       content_type :json
       JSON.generate(result: 'ok')
     end
@@ -168,14 +189,14 @@ module Isuda
       page = (params[:page] || 1).to_i
 
       entries = db.xquery(%|
-        SELECT description, keyword FROM entry
+        SELECT id, keyword FROM entry
         ORDER BY updated_at DESC
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
-      pattern = fetch_all_keyword_pattern
+      #pattern = fetch_all_keyword_pattern
       entries.each do |entry|
-        entry[:html] = htmlify(entry[:description], pattern)
+        entry[:html] = htmlify(entry[:id])
         entry[:stars] = load_stars(entry[:keyword])
       end
 
@@ -257,10 +278,10 @@ module Isuda
     get '/keyword/:keyword', set_name: true do
       keyword = params[:keyword] or halt(400)
 
-      entry = db.xquery(%| select keyword, description from entry where keyword = ? |, keyword).first or halt(404)
+      entry = db.xquery(%| select id, keyword from entry where keyword = ? |, keyword).first or halt(404)
       entry[:stars] = load_stars(entry[:keyword])
-      pattern = fetch_all_keyword_pattern
-      entry[:html] = htmlify(entry[:description], pattern)
+      #pattern = fetch_all_keyword_pattern
+      entry[:html] = htmlify(entry[:id])
 
       locals = {
         entry: entry,
