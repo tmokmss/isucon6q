@@ -11,6 +11,7 @@ gem 'unicorn'
 group :development do
   gem 'foreman'
   gem 'sinatra-contrib', require: nil
+  gem 'redis', '~> 3.2', '>= 3.2.1'
 end
 
 group :development, :test do

@@ -24,6 +24,7 @@ GEM
       rack (>= 1.0)
     raindrops (0.17.0)
     rake (12.3.1)
+    redis (3.3.5)
     ruby-debug-ide (0.6.1)
       rake (>= 0.8.1)
     sinatra (1.4.7)
@@ -56,6 +57,7 @@ DEPENDENCIES
   mysql2
   mysql2-cs-bind
   rack-mini-profiler
+  redis (~> 3.2, >= 3.2.1)
   ruby-debug-ide
   sinatra
   sinatra-contrib
