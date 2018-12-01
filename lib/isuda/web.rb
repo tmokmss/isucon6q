@@ -127,17 +127,17 @@ module Isuda
       def htmlify(entry_id)
         res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
         last_checked_entry_id = res[:last_checked_entry_id]
-        htmlfied = res[:htmlified]
-        return htmlfied if latest_entry_id == last_checked_entry_id
+        htmlified = res[:htmlified]
+        return htmlified if latest_entry_id == last_checked_entry_id
 
-        if htmlfied.nil?
-          htmlfied = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
+        if htmlified.nil?
+          htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
         end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
         pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
         kw2hash = {}
-        hashed_content = htmlfied.gsub(/(#{pattern})/) {|m|
+        hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
           "isuda_#{Digest::SHA1.hexdigest(matched_keyword)}".tap do |hash|
             kw2hash[matched_keyword] = hash
