@@ -151,7 +151,7 @@ module Isuda
         end
         result = escaped_content.gsub(/\n/, "<br />\n")
 
-        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ?|, result, latest_entry_id)
+        db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ?, where = ? |, result, latest_entry_id, entry_id)
 
         result
       end
@@ -192,7 +192,7 @@ module Isuda
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
-      pattern = fetch_all_keyword_pattern
+      #pattern = fetch_all_keyword_pattern
       entries.each do |entry|
         entry[:html] = htmlify(entry[:id])
         entry[:stars] = load_stars(entry[:keyword])
