@@ -121,14 +121,20 @@ module Isuda
       end
 
       def latest_entry_id
-        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).to_i
+        @latest_entry_id ||= db.xquery(%| select id from entry order by id desc limit 1 |).first[:id].to_i
       end
 
       def htmlify(entry_id)
-        last_checked_entry_id, htmlfied = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).to_a
+        res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
+	last_checked_entry_id = res[:last_checked_entry_id]
+	htmlfied = res[:htmlified]
         return htmlfied if latest_entry_id == last_checked_entry_id
 
-        keywords = db.xquery(%|select keyword from entry  order by keyword_length desc where id between ? and ? |, last_checked_entry_id, latest_entry_id);
+        if htmlfied.nil?
+          htmlfied = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
+        end
+
+        keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
         pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
         kw2hash = {}
         hashed_content = htmlfied.gsub(/(#{pattern})/) {|m|
@@ -179,14 +185,14 @@ module Isuda
       page = (params[:page] || 1).to_i
 
       entries = db.xquery(%|
-        SELECT keyword FROM entry
+        SELECT id, keyword FROM entry
         ORDER BY updated_at DESC
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
       pattern = fetch_all_keyword_pattern
       entries.each do |entry|
-        entry[:html] = htmlify(entry.id)
+        entry[:html] = htmlify(entry[:id])
         entry[:stars] = load_stars(entry[:keyword])
       end
 
