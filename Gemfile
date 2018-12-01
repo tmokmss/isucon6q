@@ -8,7 +8,7 @@ gem 'mysql2-cs-bind'
 gem 'sinatra'
 gem 'unicorn'
 gem 'rack-lineprof'
-
+gem 'sidekiq'
 
 group :development do
   gem 'foreman'

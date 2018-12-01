@@ -10,6 +10,7 @@ require 'rack/utils'
 require 'sinatra/base'
 require 'tilt/erubis'
 require 'redis'
+require './worker.rb'
 
 require 'rack-lineprof'
 require 'rack-mini-profiler'
@@ -250,6 +251,10 @@ module Isuda
         ON DUPLICATE KEY UPDATE
         author_id = ?, keyword = ?, description = ?, updated_at = NOW()
       |, *bound)
+
+      # entry_idを全て取得
+      # それをeachで回して、全てに対してWorkerを作って、html生成を行う
+      # MyWorker.perform_async(entry_id) みたいな
 
       redirect_found '/'
     end
