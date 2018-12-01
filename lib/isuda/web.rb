@@ -274,10 +274,10 @@ module Isuda
     get '/keyword/:keyword', set_name: true do
       keyword = params[:keyword] or halt(400)
 
-      entry = db.xquery(%| select keyword, description from entry where keyword = ? |, keyword).first or halt(404)
+      entry = db.xquery(%| select id, keyword from entry where keyword = ? |, keyword).first or halt(404)
       entry[:stars] = load_stars(entry[:keyword])
-      pattern = fetch_all_keyword_pattern
-      entry[:html] = htmlify(entry[:description], pattern)
+      #pattern = fetch_all_keyword_pattern
+      entry[:html] = htmlify(entry[:id])
 
       locals = {
         entry: entry,
