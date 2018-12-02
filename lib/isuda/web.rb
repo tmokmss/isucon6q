@@ -136,7 +136,7 @@ module Isuda
           htmlified = Rack::Utils.escape_html(htmlified)
         end
 
-        keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
+        keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id + 1, latest_entry_id);
         pattern = keywords.map {|k| Regexp.escape(Rack::Utils.escape_html(k[:keyword])) }.join('|')
         #pattern = fetch_all_keyword_pattern
         kw2hash = {}
@@ -160,7 +160,7 @@ module Isuda
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
-        string.gsub!(/\n/, "<br />\n")
+        escaped_content.gsub(/\n/, "<br />\n")
 
         # ここで独自の記法を本来の特殊文字に置換し直す
         #my_deescape_html(escaped_content)
@@ -225,7 +225,7 @@ module Isuda
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
       db_star.xquery('TRUNCATE star')
 
-      db.xquery(%| update entry set htmlified = null, last_checked_entry_id = 0 |)
+      db.xquery(%| update entry set htmlified = null, last_checked_entry_id = -1 |)
 
       content_type :json
       JSON.generate(result: 'ok')
