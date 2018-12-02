@@ -29,7 +29,6 @@ module Isuda
     set :dsn, ENV['ISUDA_DSN'] || 'dbi:mysql:db=isuda'
     set :session_secret, 'tonymoris'
     set :isupam_origin, ENV['ISUPAM_ORIGIN'] || 'http://localhost:5050'
-    set :isutar_origin, ENV['ISUTAR_ORIGIN'] || 'http://localhost:5001'
 
     set :db_user_star, ENV['ISUTAR_DB_USER'] || 'root'
     set :db_password_star, ENV['ISUTAR_DB_PASSWORD'] || ''
@@ -132,13 +131,13 @@ module Isuda
         htmlified = res[:htmlified]
         return htmlified if latest_entry_id == last_checked_entry_id
 
-        #if htmlified.nil?
+        if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
-        #end
+        end
 
-        #keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
-        #pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
-	pattern = fetch_all_keyword_pattern
+        keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
+        pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+        #pattern = fetch_all_keyword_pattern
         kw2hash = {}
         hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
@@ -146,16 +145,36 @@ module Isuda
             kw2hash[matched_keyword] = hash
           end
         }
+
+        # ここでテキスト内の特殊文字がエスケープされる（本来HTMLタグは含まれていない想定）
+        # 意図したHTMLタグは特殊文字を使わないようにしておく必要がある
         escaped_content = Rack::Utils.escape_html(hashed_content)
         kw2hash.each do |(keyword, hash)|
           keyword_url = url("/keyword/#{Rack::Utils.escape_path(keyword)}")
-          anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
+          # HTMLタグ内の特殊文字は全て独自の記法で書いておく
+          anchor = '$lt$a href=$dquote$%s$dquote$$gt$%s$lt$$slash$a$gt$' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
         escaped_content.gsub(/\n/, "<br />\n")
+
+        # ここで独自の記法を本来の特殊文字に置換し直す
+        result = my_deescape_html(escaped_content)
+      end
+
+      def my_deescape_html(string)
+        dic = {
+          #"$amp$" => "&",
+          "$lt$" => "<",
+          "$gt$" => ">",
+          #"$quote$" => "'",
+          "$dquote$" => '"',
+          "$slash$" => "/"
+        }
+        pattern = Regexp.union(*dic.keys)
+        string.to_s.gsub(pattern){|c| dic[c] }
       end
 
       def uri_escape(str)
