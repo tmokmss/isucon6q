@@ -133,12 +133,11 @@ module Isuda
 
         if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
-          # もともとあったampはエスケープしておく
-          htmlified.gsub!(/&/, "$amp$")
+          htmlified = Rack::Utils.escape_html(htmlified)
         end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
-        pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+        pattern = keywords.map {|k| Regexp.escape(Rack::Utils.escape_html(k[:keyword])) }.join('|')
         #pattern = fetch_all_keyword_pattern
         kw2hash = {}
         hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
@@ -154,15 +153,17 @@ module Isuda
         kw2hash.each do |(keyword, hash)|
           keyword_url = url("/keyword/#{Rack::Utils.escape_path(keyword)}")
           # HTMLタグ内の特殊文字は全て独自の記法で書いておく
-          anchor = '<a href="%s">%s</a>' % [keyword_url, escape_html_without_amp(keyword)]
-          anchor = my_escape_html(anchor)
+          anchor = '<a href="%s">%s</a>' % [keyword_url, keyword]
+          #anchor = my_escape_html(anchor)
           escaped_content.gsub!(hash, anchor)
         end
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
+        string.gsub!(/\n/, "<br />\n")
+
         # ここで独自の記法を本来の特殊文字に置換し直す
-        my_deescape_html(escaped_content)
+        #my_deescape_html(escaped_content)
       end
 
       def escape_html_without_amp(string)
