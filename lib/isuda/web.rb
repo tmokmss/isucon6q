@@ -133,6 +133,8 @@ module Isuda
 
         if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
+          # もともとあったampはエスケープしておく
+          htmlfied.gsub!(/&/, "$amp$")
         end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
@@ -148,29 +150,55 @@ module Isuda
 
         # ここでテキスト内の特殊文字がエスケープされる（本来HTMLタグは含まれていない想定）
         # 意図したHTMLタグは特殊文字を使わないようにしておく必要がある
-        escaped_content = Rack::Utils.escape_html(hashed_content)
+        escaped_content = escape_html_without_amp(hashed_content)
         kw2hash.each do |(keyword, hash)|
           keyword_url = url("/keyword/#{Rack::Utils.escape_path(keyword)}")
           # HTMLタグ内の特殊文字は全て独自の記法で書いておく
-          anchor = '$lt$a href=$dquote$%s$dquote$$gt$%s$lt$$slash$a$gt$' % [keyword_url, Rack::Utils.escape_html(keyword)]
+          anchor = '<a href="%s">%s</a>' % [keyword_url, escape_html_without_amp(keyword)]
+          anchor = my_escape_html(anchor)
           escaped_content.gsub!(hash, anchor)
         end
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
         # ここで独自の記法を本来の特殊文字に置換し直す
-        result = my_deescape_html(escaped_content)
+        my_deescape_html(escaped_content)
+      end
+
+      def escape_html_without_amp(string)
+        dic = {
+          #"&" => "&amp;",
+          "<" => "&lt;",
+          ">" => "&gt;",
+          "'" => "&#x27;",
+          '"' => "&quot;",
+          "/" => "&#x2F;"
+        }
+        pattern = Regexp.union(*dic.keys)
+        string.to_s.gsub(pattern){|c| dic[c] }
       end
 
       def my_deescape_html(string)
         string.gsub!(/\n/, "<br />\n")
         dic = {
-          #"$amp$" => "&",
+          "$amp$" => "&",
           "$lt$" => "<",
           "$gt$" => ">",
           #"$quote$" => "'",
           "$dquote$" => '"',
-          "$slash$" => "/"
+          "$slash$" => "/",
+        }
+        pattern = Regexp.union(*dic.keys)
+        string.to_s.gsub(pattern){|c| dic[c] }
+      end
+
+      def my_escape_html(string)
+        string.gsub!(/\n/, "<br />\n")
+        dic = {
+          "<"  => "$lt$",
+          ">"  => "$gt$",
+          '"' => "$dquote$",
+          "/" => "$slash$",
         }
         pattern = Regexp.union(*dic.keys)
         string.to_s.gsub(pattern){|c| dic[c] }
