@@ -17,7 +17,7 @@ require 'flamegraph'
 
 module Isuda
   class Web < ::Sinatra::Base
-    use Rack::Lineprof, profile: './web.rb'
+    #use Rack::Lineprof, profile: './web.rb'
     use Rack::MiniProfiler
     enable :protection
     enable :sessions
@@ -134,7 +134,7 @@ module Isuda
         if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
           # もともとあったampはエスケープしておく
-          htmlfied.gsub!(/&/, "$amp$")
+          htmlified.gsub!(/&/, "$amp$")
         end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id, latest_entry_id);
