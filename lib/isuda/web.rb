@@ -129,7 +129,7 @@ module Isuda
         res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
         last_checked_entry_id = res[:last_checked_entry_id]
         htmlified = res[:htmlified]
-        return htmlified if latest_entry_id == last_checked_entry_id
+        return my_deescape_html(htmlified) if latest_entry_id == last_checked_entry_id
 
         if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
@@ -158,13 +158,12 @@ module Isuda
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
-        escaped_content.gsub(/\n/, "<br />\n")
-
         # ここで独自の記法を本来の特殊文字に置換し直す
         result = my_deescape_html(escaped_content)
       end
 
       def my_deescape_html(string)
+        string.gsub!(/\n/, "<br />\n")
         dic = {
           #"$amp$" => "&",
           "$lt$" => "<",
