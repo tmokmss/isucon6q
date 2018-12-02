@@ -220,9 +220,9 @@ module Isuda
 
       db.xquery(%| update entry set htmlified = null, last_checked_entry_id = -1 |)
 
-      db.xquery(%| select id from entry|).each do |record|
-        htmlify(record[:id])
-      end
+      # db.xquery(%| select id from entry|).each do |record|
+      #   htmlify(record[:id])
+      # end
 
       content_type :json
       JSON.generate(result: 'ok')
