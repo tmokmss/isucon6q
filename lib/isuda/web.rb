@@ -129,16 +129,16 @@ module Isuda
         res = db.xquery(%|select last_checked_entry_id, htmlified from entry where id = ?|, entry_id).first
         last_checked_entry_id = res[:last_checked_entry_id]
         htmlified = res[:htmlified]
-        return my_deescape_html(htmlified) if latest_entry_id == last_checked_entry_id
+        return htmlified if last_checked_entry_id == latest_entry_id
 
         if htmlified.nil?
           htmlified = db.xquery(%| select description from entry where id = ? |, entry_id).first[:description]
           htmlified = Rack::Utils.escape_html(htmlified)
+          htmlified.gsub!(/\n/, "<br />\n") 
         end
 
         keywords = db.xquery(%|select keyword from entry where id between ? and ? order by keyword_length desc |, last_checked_entry_id + 1, latest_entry_id);
         pattern = keywords.map {|k| Regexp.escape(Rack::Utils.escape_html(k[:keyword])) }.join('|')
-        #pattern = fetch_all_keyword_pattern
         kw2hash = {}
         hashed_content = htmlified.gsub(/(#{pattern})/) {|m|
           matched_keyword = $1
@@ -147,23 +147,16 @@ module Isuda
           end
         }
 
-        # ここでテキスト内の特殊文字がエスケープされる（本来HTMLタグは含まれていない想定）
-        # 意図したHTMLタグは特殊文字を使わないようにしておく必要がある
-        escaped_content = escape_html_without_amp(hashed_content)
+        escaped_content = hashed_content
         kw2hash.each do |(keyword, hash)|
           keyword_url = url("/keyword/#{Rack::Utils.escape_path(keyword)}")
-          # HTMLタグ内の特殊文字は全て独自の記法で書いておく
           anchor = '<a href="%s">%s</a>' % [keyword_url, keyword]
-          #anchor = my_escape_html(anchor)
           escaped_content.gsub!(hash, anchor)
         end
 
         db.xquery(%| update entry set htmlified = ?, last_checked_entry_id = ? where id = ? |, escaped_content, latest_entry_id, entry_id)
 
-        escaped_content.gsub(/\n/, "<br />\n")
-
-        # ここで独自の記法を本来の特殊文字に置換し直す
-        #my_deescape_html(escaped_content)
+        escaped_content
       end
 
       def escape_html_without_amp(string)
@@ -226,6 +219,10 @@ module Isuda
       db_star.xquery('TRUNCATE star')
 
       db.xquery(%| update entry set htmlified = null, last_checked_entry_id = -1 |)
+
+      db.xquery(%| select id from entry|).each do |record|
+        htmlify(record[:id])
+      end
 
       content_type :json
       JSON.generate(result: 'ok')
